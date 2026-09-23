@@ -22,8 +22,9 @@
     background-attachment:fixed;
     display:flex; justify-content:center;
     padding:22px 16px 30px;
+    overflow-x:hidden;
   }
-  .wrap{width:100%; max-width:1080px;}
+  .wrap{width:100%; max-width:1080px; min-width:0;}
   header{text-align:center; margin:2px 0 16px;}
   h1{
     margin:0; font-size:clamp(23px,3.6vw,36px); letter-spacing:.06em;
@@ -32,15 +33,16 @@
   }
   .sub{margin:7px 0 0; font-size:clamp(12.5px,1.6vw,14.5px); color:var(--ink-soft); letter-spacing:.02em;}
   .stage{
-    position:relative; width:100%; aspect-ratio:16/9;
+    position:relative; width:100%; max-width:100%; min-width:0; aspect-ratio:16/9;
     border-radius:22px; overflow:hidden;
     background:#dff0fb;
     border:1px solid var(--line);
     box-shadow:0 26px 54px -30px rgba(35,80,120,.55), 0 3px 0 #fff inset;
   }
-  canvas{display:block; width:100%; height:100%; touch-action:manipulation;}
+  canvas{display:block; width:100%; height:100%; max-width:100%; touch-action:manipulation;}
   .panel{
     margin:16px auto 0; display:flex; flex-wrap:wrap; gap:12px 18px;
+    width:100%; max-width:100%; min-width:0; box-sizing:border-box;
     align-items:center; justify-content:center;
     background:var(--card); backdrop-filter:blur(6px);
     border:1px solid var(--line); border-radius:18px;
@@ -215,7 +217,7 @@ const P = {                       // 鹈鹕
   thigh : 66, shin: 68,
   shoulder: { x: -56, y:-300 },
   bodyC : { x: -90, y:-258 },
-  head  : { x:  58, y:-352, r: 30 }
+  head  : { x:  66, y:-368 }
 };
 
 /* ═══════════════ 2. 三种风景 ═══════════════ */
@@ -402,10 +404,33 @@ const SCENES = {
     sky: g => grad(0,0,0,H,[[0,'#a9e2ff'],[.55,'#dcf3ff'],[1,'#f6fcff']]),
     far(o, t){
       /* 海 */
-      ctx.fillStyle = grad(0,300,0,GROUND,[[0,'#3fb9e0'],[.55,'#79d3ec'],[1,'#c8f0f8']]);
-      ctx.fillRect(0,300,W,GROUND-300);
+      const shore = 522;
+      ctx.fillStyle = grad(0,300,0,shore,[[0,'#3fb9e0'],[.55,'#79d3ec'],[1,'#c8f0f8']]);
+      ctx.fillRect(0,300,W,shore-300);
       ctx.fillStyle = 'rgba(255,255,255,.55)';
       ctx.fillRect(0,300,W,3);
+      /* 浪花线 */
+      tile(o*.5, 54, (x,i)=>{
+        const a = .25 + rnd(i)*.4;
+        ctx.strokeStyle = 'rgba(255,255,255,'+a+')'; ctx.lineWidth = 3.4; ctx.lineCap='round';
+        const yy = shore - 6 - rnd(i+2)*10;
+        ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + 18 + rnd(i+5)*18, yy); ctx.stroke();
+      });
+      /* 沙滩：棕榈树踩在上面，不再是长在海里 */
+      ctx.fillStyle = grad(0,shore-8,0,GROUND,[[0,'#f7e6c4'],[1,'#efd8ad']]);
+      ctx.beginPath();
+      ctx.moveTo(0, shore);
+      for (let x = 0; x <= W; x += 40)
+        ctx.lineTo(x, shore + Math.sin(x*0.013)*5 + Math.sin(x*0.031)*3);
+      ctx.lineTo(W, GROUND + 8); ctx.lineTo(0, GROUND + 8);
+      ctx.closePath(); ctx.fill();
+      tile(o*.34, 170, (x,i)=>{
+        ctx.fillStyle = 'rgba(206,178,132,'+(.30+rnd(i)*.35)+')';
+        for (let k = 0; k < 3; k++){
+          const px = x + rnd(i+k*3.1)*140, py = shore + 6 + rnd(i+k*5.7)*24;
+          ctx.beginPath(); ctx.ellipse(px, py, 3 + rnd(i+k)*3, 2, 0, 0, TAU); ctx.fill();
+        }
+      });
       /* 远处小岛 */
       tile(o*.05, 620, (x,i)=>{
         const s = .8 + rnd(i)*.7, yy = 302;
@@ -572,20 +597,23 @@ const SCENES = {
     near(o){
       /* 路边护栏 */
       tile(o*1.36, 132, (x,i)=>{
-        ctx.fillStyle = '#dbe6f0';
-        rr(x, 656, 10, 40, 4); ctx.fill();
-        ctx.fillStyle = '#eaf2f9';
-        rr(x - 22, 660, 120, 9, 4); ctx.fill();
+        ctx.fillStyle = '#b9c8d6';
+        rr(x, 654, 10, 44, 4); ctx.fill();
+        ctx.fillStyle = '#e6eef6';
+        rr(x - 22, 658, 120, 9, 4); ctx.fill();
       });
-      tile(o*1.36, 190, (x,i)=>{
-        ctx.fillStyle = ['#eaf4ff','#dfeeff'][Math.floor(rnd(i)*2)];
+      /* 绿篱 */
+      tile(o*1.36, 240, (x,i)=>{
+        ctx.fillStyle = 'rgba(120,160,140,.20)';
+        ctx.beginPath(); ctx.ellipse(x + 50, 712, 62, 12, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = ['#6ec07d','#7ecd8d'][Math.floor(rnd(i)*2)];
         ctx.beginPath();
-        ctx.arc(x + 30, 706, 26, Math.PI, TAU);
-        ctx.arc(x + 70, 710, 22, Math.PI, TAU);
+        ctx.arc(x + 30, 706, 27, Math.PI, TAU);
+        ctx.arc(x + 72, 710, 23, Math.PI, TAU);
         ctx.fill();
       });
     },
-    road:'#cfd3d9', grass:'#cbdff0', grassDark:'#b7d1e6'
+    road:'#d3d7dd', grass:'#dde4ea', grassDark:'#cbd5df'
   }
 };
 
@@ -623,7 +651,7 @@ function drawLeg(st, side, far){
   const hip = { x: P.hip.x + st.bobX, y: P.hip.y + st.bobY };
   const sol = ik(hip, pd, P.thigh, P.shin, -1);
   const C = far
-    ? { up:'#cf7f4f', lo:'#c4754a', ft:'#b96c43', pl:'#59677a', cr:'#93a3b4' }
+    ? { up:'#eaa57d', lo:'#e19b6a', ft:'#d98f5c', pl:'#5d6b7c', cr:'#96a6b7' }
     : { up:'#ffab77', lo:'#fb9660', ft:'#f2884f', pl:'#3b4552', cr:'#c9d5e2' };
 
   /* 曲柄 */
@@ -635,9 +663,9 @@ function drawLeg(st, side, far){
   ctx.restore();
   /* 大腿 → 小腿 */
   ctx.lineCap = 'round';
-  ctx.strokeStyle = C.up; ctx.lineWidth = 22;
+  ctx.strokeStyle = C.up; ctx.lineWidth = 17;
   ctx.beginPath(); ctx.moveTo(hip.x,hip.y); ctx.lineTo(sol.knee.x, sol.knee.y); ctx.stroke();
-  ctx.strokeStyle = C.lo; ctx.lineWidth = 14;
+  ctx.strokeStyle = C.lo; ctx.lineWidth = 12;
   ctx.beginPath(); ctx.moveTo(sol.knee.x, sol.knee.y); ctx.lineTo(sol.foot.x, sol.foot.y); ctx.stroke();
   /* 蹼足 */
   ctx.save();
@@ -723,45 +751,55 @@ function drawFrame(){
 /* ═══════════════ 4. 绘制鹈鹕 ═══════════════ */
 function drawPelican(st){
   const bx = st.bobX, by = st.bobY;
-  const breathe = 1 + Math.sin(st.t*1.7)*0.012;
 
-  /* 围巾（画在身体后面） */
+  /* 脖子（先画，根部被身体压住，才像长出来的） */
   ctx.save();
-  const flut = 0.5 + st.vs;                    // 0.5~1.5，随速度飘得更凶
-  ctx.beginPath();
-  const knot = { x:-26+bx, y:-296+by };
-  const pts = [];
-  const NL = 16;
-  for (let i = 0; i <= NL; i++){
-    const t = i/NL;
-    const x = knot.x - t*152;
-    const y = knot.y + 10 + t*t*34 + Math.sin(st.t*7 + t*5.2)*10*flut*t;
-    pts.push({ x, y, w: lerp(11, 6, t) });
+  const neck = band({x:-26+bx,y:-280+by}, {x:-18+bx,y:-334+by}, {x:34+bx,y:-360+by}, 35, 27);
+  ctx.fillStyle = grad(-30,-280,40,-370,[[0,'#f2f8fc'],[1,'#ffffff']]);
+  ctx.fill(neck);
+  ctx.strokeStyle = 'rgba(96,122,146,.30)'; ctx.lineWidth = 2.6; ctx.stroke(neck);
+  ctx.save(); ctx.clip(neck);                     /* 内侧阴影，免得白加白糊成一片 */
+  ctx.fillStyle = 'rgba(198,216,232,.60)';
+  ctx.beginPath(); ctx.ellipse(-46+bx, -300+by, 34, 46, .55, 0, TAU); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  /* 近侧翅膀：先画，根部被身体压住，看起来才是从身上长出来的 */
+  const s = P.shoulder;
+  const flap = Math.sin(st.crank*2 + .6) * 3 * (0.4 + st.vs);
+  const c1 = { x: -46 + bx, y: -302 + by - 3 };
+  const c2 = { x:  30 + bx, y: -288 + by + flap * .8 };
+  const c3 = { x: 126 + bx, y: -226 + by + flap * 1.5 };
+  const wing = band(c1, c2, c3, 19, 10, 18);
+  ctx.save();
+  ctx.fillStyle = grad(-50,-310,140,-200,[[0,'#ffffff'],[.6,'#eef5fb'],[1,'#d8e4f0']]);
+  ctx.fill(wing);
+  ctx.strokeStyle = 'rgba(96,122,146,.32)'; ctx.lineWidth = 2.4; ctx.stroke(wing);
+  ctx.save(); ctx.clip(wing);
+  ctx.fillStyle = 'rgba(176,198,220,.42)';
+  ctx.beginPath(); ctx.ellipse(150+bx, -206+by, 46, 22, -.42, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(120,145,170,.32)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i++){
+    const t = .42 + i * .15, u = 1 - t;
+    const px = u*u*c1.x + 2*u*t*c2.x + t*t*c3.x;
+    const py = u*u*c1.y + 2*u*t*c2.y + t*t*c3.y;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px + 34, py + 6, px + 62, py + 22);
+    ctx.stroke();
   }
-  const up = [], dn = [];
-  for (let i = 0; i <= NL; i++){
-    const t = i/NL, p = pts[i];
-    const dy = (i < NL ? pts[i+1].y - p.y : p.y - pts[i-1].y);
-    const dx = (i < NL ? pts[i+1].x - p.x : p.x - pts[i-1].x);
-    const L = Math.hypot(dx,dy) || 1;
-    up.push([p.x - dy/L*p.w, p.y + dx/L*p.w]);
-    dn.push([p.x + dy/L*p.w, p.y - dx/L*p.w]);
-  }
-  ctx.beginPath();
-  ctx.moveTo(up[0][0], up[0][1]);
-  for (const q of up) ctx.lineTo(q[0], q[1]);
-  for (let i = dn.length-1; i >= 0; i--) ctx.lineTo(dn[i][0], dn[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = grad(-180,-300,20,-250,[[0,'#ff8371'],[1,'#ff5f52']]);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(210,60,60,.35)'; ctx.lineWidth = 2; ctx.stroke();
-  ctx.fillStyle = '#ffcf5c';
-  ctx.beginPath(); ctx.arc(knot.x, knot.y+2, 8.5, 0, TAU); ctx.fill();
+  ctx.restore();
   ctx.restore();
 
   /* 身体 */
   ctx.save();
   ctx.translate(bx, by);
+  /* 尾羽先画，根部同样被身体挡住 */
+  ctx.fillStyle = '#e7eff6';
+  ctx.beginPath();
+  ctx.moveTo(-176,-268); ctx.quadraticCurveTo(-238,-262, -228,-234);
+  ctx.quadraticCurveTo(-198,-236, -180,-246); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(90,115,140,.25)'; ctx.lineWidth = 2; ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(-188,-262);
   ctx.bezierCurveTo(-160,-320, -80,-334, -22,-306);
@@ -772,116 +810,114 @@ function drawPelican(st){
   ctx.fillStyle = grad(-120,-330,-80,-180,[[0,'#ffffff'],[.62,'#f3f8fc'],[1,'#dde8f2']]);
   ctx.fill();
   ctx.strokeStyle = 'rgba(90,115,140,.30)'; ctx.lineWidth = 2.6; ctx.stroke();
-  /* 尾羽 */
-  ctx.fillStyle = '#e7eff6';
-  ctx.beginPath();
-  ctx.moveTo(-176,-268); ctx.quadraticCurveTo(-232,-262, -222,-238);
-  ctx.quadraticCurveTo(-196,-238, -180,-246); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(90,115,140,.25)'; ctx.lineWidth = 2; ctx.stroke();
   /* 暖色反光 */
   ctx.fillStyle = 'rgba(255,226,190,.55)';
   ctx.beginPath(); ctx.ellipse(-150,-206, 40, 15, -.35, 0, TAU); ctx.fill();
   ctx.restore();
 
-  /* 脖子 */
+  /* 围巾：系在脖子上，从背后飘出去（画在身体之上才看得见） */
   ctx.save();
-  ctx.fillStyle = grad(-40,-300,50,-360,[[0,'#ffffff'],[1,'#eef4fa']]);
-  const neck = band({x:-32+bx,y:-292+by}, {x:2+bx,y:-330+by}, {x:42+bx,y:-352+by}, 30, 25);
-  ctx.fill(neck);
-  ctx.strokeStyle = 'rgba(90,115,140,.28)'; ctx.lineWidth = 2.4; ctx.stroke(neck);
+  ctx.translate(bx, by);
+  const flut = 0.45 + st.vs;                  // 骑得越快飘得越凶
+  const knot = { x: -22, y: -296 };
+  const NL = 18, pts = [];
+  for (let i = 0; i <= NL; i++){
+    const t = i / NL;
+    const x = knot.x - t * 208;
+    const y = knot.y - t * 30 + t * t * 22
+            + Math.sin(st.t * 6.5 - t * 4.6) * 13 * flut * t;
+    pts.push({ x, y, w: lerp(12, 6.5, t) });
+  }
+  const up = [], dn = [];
+  for (let i = 0; i <= NL; i++){
+    const p = pts[i];
+    const nx = pts[Math.min(i+1, NL)], pv = pts[Math.max(i-1, 0)];
+    const dx = nx.x - pv.x, dy = nx.y - pv.y;
+    const L = Math.hypot(dx,dy) || 1;
+    up.push([p.x - dy/L*p.w, p.y + dx/L*p.w]);
+    dn.push([p.x + dy/L*p.w, p.y - dx/L*p.w]);
+  }
+  ctx.beginPath();
+  ctx.moveTo(up[0][0], up[0][1]);
+  for (const q of up) ctx.lineTo(q[0], q[1]);
+  for (let i = dn.length-1; i >= 0; i--) ctx.lineTo(dn[i][0], dn[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = grad(-240,-320,0,-280,[[0,'#ff8b74'],[1,'#ff5d50']]);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(206,58,58,.35)'; ctx.lineWidth = 1.8; ctx.stroke();
+  ctx.fillStyle = '#ffcf5c';
+  ctx.beginPath(); ctx.arc(knot.x + 2, knot.y + 4, 9, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(190,120,20,.45)'; ctx.lineWidth = 1.6; ctx.stroke();
   ctx.restore();
 
   /* 头 + 喙 + 喉囊 */
   const hx = P.head.x + bx, hy = P.head.y + by;
   ctx.save();
-  /* 喉囊 */
+  /* 喉囊（先画，根部随后被上喙与头压住） */
   ctx.beginPath();
-  ctx.moveTo(hx + 20, hy + 6);
-  ctx.quadraticCurveTo(hx + 34, hy + 52, hx + 92, hy + 62);
-  ctx.quadraticCurveTo(hx + 140, hy + 68, hx + 158, hy + 22);
-  ctx.quadraticCurveTo(hx + 96, hy + 22, hx + 20, hy + 6);
+  ctx.moveTo(hx + 16, hy + 2);
+  ctx.quadraticCurveTo(hx + 30, hy + 78, hx + 90, hy + 78);
+  ctx.quadraticCurveTo(hx + 150, hy + 76, hx + 158, hy + 14);
+  ctx.quadraticCurveTo(hx + 104, hy - 4, hx + 16, hy + 2);
   ctx.closePath();
-  const pouchG = ctx.createRadialGradient(hx+70, hy+20, 6, hx+70, hy+34, 90);
-  pouchG.addColorStop(0, '#ffdba6'); pouchG.addColorStop(1, '#ffbb69');
-  ctx.fillStyle = pouchG; ctx.fill();
-  ctx.strokeStyle = 'rgba(198,124,40,.45)'; ctx.lineWidth = 2.4; ctx.stroke();
-  /* 上喙 */
-  ctx.beginPath();
-  ctx.moveTo(hx + 18, hy - 12);
-  ctx.quadraticCurveTo(hx + 96, hy - 8, hx + 162, hy + 20);
-  ctx.quadraticCurveTo(hx + 92, hy + 14, hx + 16, hy + 4);
-  ctx.closePath();
-  ctx.fillStyle = grad(hx,hy-12,hx+160,hy+20,[[0,'#ffc259'],[1,'#ff9a2f']]);
+  ctx.fillStyle = grad(hx+30,hy+10,hx+96,hy+78,[[0,'#ffe2b4'],[1,'#ffb259']]);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(190,110,30,.45)'; ctx.lineWidth = 2.2; ctx.stroke();
+  ctx.strokeStyle = 'rgba(202,128,44,.5)'; ctx.lineWidth = 2.6; ctx.stroke();
+  /* 上喙：细长略下垂 */
+  ctx.beginPath();
+  ctx.moveTo(hx + 20, hy - 8);
+  ctx.quadraticCurveTo(hx + 104, hy - 12, hx + 158, hy + 16);
+  ctx.quadraticCurveTo(hx + 104, hy + 4, hx + 20, hy + 10);
+  ctx.closePath();
+  ctx.fillStyle = grad(hx+20,hy-12,hx+158,hy+16,[[0,'#ffc65c'],[1,'#ff9c30']]);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(196,116,30,.5)'; ctx.lineWidth = 2.4; ctx.stroke();
   /* 头 */
-  ctx.beginPath(); ctx.ellipse(hx, hy, 31, 29, -.10, 0, TAU);
+  ctx.beginPath(); ctx.ellipse(hx, hy, 35, 33, -.10, 0, TAU);
   ctx.fillStyle = grad(hx-20,hy-30,hx+20,hy+20,[[0,'#ffffff'],[1,'#eaf1f8']]);
   ctx.fill();
   ctx.strokeStyle = 'rgba(90,115,140,.30)'; ctx.lineWidth = 2.6; ctx.stroke();
   /* 冠羽 */
-  ctx.strokeStyle = '#f7d47a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.strokeStyle = '#f7d47a'; ctx.lineWidth = 4.4; ctx.lineCap = 'round';
   for (let i = 0; i < 3; i++){
-    const a = -2.1 - i*0.34 + Math.sin(st.t*3 + i)*0.06;
+    const a = -2.15 - i*0.32 + Math.sin(st.t*3 + i)*0.07;
     ctx.beginPath();
-    ctx.moveTo(hx - 4 + i*4, hy - 26);
-    ctx.quadraticCurveTo(hx - 4 + Math.cos(a)*20, hy - 26 + Math.sin(a)*24,
-                         hx - 4 + Math.cos(a)*36, hy - 26 + Math.sin(a)*40);
+    ctx.moveTo(hx - 8 + i*5, hy - 27);
+    ctx.quadraticCurveTo(hx - 8 + Math.cos(a)*22, hy - 27 + Math.sin(a)*26,
+                         hx - 8 + Math.cos(a)*40, hy - 27 + Math.sin(a)*44);
     ctx.stroke();
   }
   /* 眼睛 */
   ctx.fillStyle = '#ffffff';
-  ctx.beginPath(); ctx.arc(hx + 15, hy - 7, 8.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + 17, hy - 9, 9, 0, TAU); ctx.fill();
   ctx.fillStyle = '#2b3a48';
-  ctx.beginPath(); ctx.arc(hx + 17, hy - 7, 5.6, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + 19, hy - 9, 6.1, 0, TAU); ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.beginPath(); ctx.arc(hx + 18.6, hy - 9, 2.1, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + 20.8, hy - 11.4, 2.3, 0, TAU); ctx.fill();
   /* 腮红 */
-  ctx.fillStyle = 'rgba(255,178,178,.45)';
-  ctx.beginPath(); ctx.ellipse(hx - 12, hy + 12, 12, 7, .2, 0, TAU); ctx.fill();
-  /* 鱼尾（喉囊里带的小鱼） */
+  ctx.fillStyle = 'rgba(255,178,178,.42)';
+  ctx.beginPath(); ctx.ellipse(hx - 13, hy + 15, 13, 7.5, .2, 0, TAU); ctx.fill();
+  /* 鱼尾：从喉囊侧边探出来，一路晃 */
   ctx.save();
-  ctx.translate(hx + 66, hy + 40);
-  ctx.rotate(Math.sin(st.t*5)*.16);
-  ctx.fillStyle = '#5cc9c0';
+  ctx.translate(hx + 149, hy + 38);
+  ctx.rotate(-0.42 + Math.sin(st.t*5)*.18);
+  ctx.fillStyle = '#57c6bd';
   ctx.beginPath();
-  ctx.moveTo(0,0); ctx.lineTo(-20,-13); ctx.lineTo(-13,0); ctx.lineTo(-20,13); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#a7e6df';
-  ctx.beginPath(); ctx.arc(2,0,7,0,TAU); ctx.fill();
+  ctx.moveTo(0,0); ctx.lineTo(24,-15); ctx.lineTo(15,0); ctx.lineTo(24,15); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ecfffd';
+  ctx.beginPath(); ctx.arc(0,0,7.4,0,TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,120,112,.45)'; ctx.lineWidth = 1.8; ctx.stroke();
   ctx.restore();
-  ctx.restore();
-
-  /* 近侧翅膀 */
-  const s = P.shoulder;
-  const flap = Math.sin(st.crank*2 + .6) * 3 * (0.4 + st.vs);
-  const wing = band(
-    { x: s.x + bx,          y: s.y + by - 4 },
-    { x:  26 + bx,          y: -274 + by + flap },
-    { x: K.grip.x - 22 + bx, y: K.grip.y - 18 + by + flap*1.4 },
-    25, 15, 16
-  );
-  ctx.save();
-  ctx.fillStyle = grad(-60,-310,140,-200,[[0,'#ffffff'],[.65,'#eef5fb'],[1,'#dbe6f1']]);
-  ctx.fill(wing);
-  ctx.strokeStyle = 'rgba(90,115,140,.30)'; ctx.lineWidth = 2.6; ctx.stroke(wing);
-  /* 羽线 */
-  ctx.strokeStyle = 'rgba(120,145,170,.30)'; ctx.lineWidth = 2; ctx.lineCap='round';
-  for (let i = 0; i < 3; i++){
-    const t = .52 + i*.13;
-    const px = lerp(lerp(s.x, 26, t), lerp(26, K.grip.x-22, t), t) + bx;
-    const py = lerp(lerp(s.y, -274, t), lerp(-274, K.grip.y-18, t), t) + by + flap;
-    ctx.beginPath(); ctx.moveTo(px, py - 9 + i*3); ctx.lineTo(px + 30, py + 4 + i*5); ctx.stroke();
-  }
   ctx.restore();
 
   /* 手（握把） */
   ctx.save();
-  ctx.translate(K.grip.x + bx, K.grip.y - 10 + by + flap*1.2);
-  ctx.fillStyle = '#f4f9fd';
-  ctx.beginPath(); ctx.ellipse(0,0, 19, 15, -.25, 0, TAU); ctx.fill();
-  ctx.strokeStyle = 'rgba(90,115,140,.30)'; ctx.lineWidth = 2.4; ctx.stroke();
+  ctx.translate(K.grip.x - 6 + bx, K.grip.y - 12 + by + flap*1.3);
+  ctx.fillStyle = '#f6fafd';
+  ctx.beginPath(); ctx.ellipse(0,0, 18, 14, -.25, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(96,122,146,.32)'; ctx.lineWidth = 2.4; ctx.stroke();
   ctx.strokeStyle = '#f2a35f'; ctx.lineWidth = 3; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(10,4); ctx.lineTo(19,9); ctx.moveTo(6,9); ctx.lineTo(12,15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(12,2); ctx.lineTo(20,7); ctx.moveTo(8,8); ctx.lineTo(14,14); ctx.stroke();
   ctx.restore();
 }
 
@@ -1137,6 +1173,18 @@ window.addEventListener('keydown', e => {
   }
   else if (e.key === 'b' || e.key === 'B') ringBell();
 });
+
+/* 支持用网址参数直接进某个场景：?scene=field&speed=80（方便分享/收藏） */
+const q = new URLSearchParams(location.search);
+if (SCENES[q.get('scene')]){
+  st.scene = q.get('scene');
+  [...document.querySelectorAll('#scenes button')].forEach(b =>
+    b.classList.toggle('active', b.dataset.scene === st.scene));
+  document.title = '鹈鹕单车漫游 · ' + SCENES[st.scene].label;
+}
+if (q.get('speed') !== null && !isNaN(+q.get('speed'))){
+  speedEl.value = String(clamp(+q.get('speed'), 0, 100));
+}
 
 /* 启动 */
 fit();
